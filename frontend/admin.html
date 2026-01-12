@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin – Feedback Dashboard</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    #stats {
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+
+    select {
+      padding: 5px;
+      margin-bottom: 15px;
+    }
+
+    .card {
+      background: #ffffff;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    .happy { border-left: 5px solid green; }
+    .ok { border-left: 5px solid orange; }
+    .sad { border-left: 5px solid red; }
+
+    button {
+      margin-top: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>📋 Feedback Dashboard</h2>
+
+  <!-- ANALYTICS -->
+  <div id="stats">Loading stats...</div>
+
+  <!-- FILTER -->
+  <select id="filter" onchange="loadFeedback()">
+    <option value="all">All</option>
+    <option value="happy">Happy</option>
+    <option value="ok">OK</option>
+    <option value="sad">Sad</option>
+  </select>
+
+  <!-- FEEDBACK LIST -->
+  <div id="feedbackList">Loading feedback...</div>
+
+  <script>
+    function loadFeedback() {
+      const filter = document.getElementById("filter").value;
+
+      fetch("http://localhost:5000/api/feedback")
+        .then(res => res.json())
+        .then(data => {
+
+          // ===== ANALYTICS =====
+          const total = data.length;
+          const happy = data.filter(f => f.mood === "happy").length;
+          const ok = data.filter(f => f.mood === "ok").length;
+          const sad = data.filter(f => f.mood === "sad").length;
+
+          document.getElementById("stats").innerHTML = `
+            Total: ${total} |
+            😊 Happy: ${happy} |
+            😐 OK: ${ok} |
+            😞 Sad: ${sad}
+          `;
+
+          // ===== FILTER =====
+          const filtered =
+            filter === "all" ? data : data.filter(f => f.mood === filter);
+
+          const list = document.getElementById("feedbackList");
+          list.innerHTML = "";
+
+          if (filtered.length === 0) {
+            list.innerHTML = "No feedback found.";
+            return;
+          }
+
+          // ===== RENDER CARDS =====
+          filtered.forEach(f => {
+            list.innerHTML += `
+              <div class="card ${f.mood}">
+                <b>Mood:</b> ${f.mood.toUpperCase()}<br>
+                ${f.reason ? `<b>Reason:</b> ${f.reason}<br>` : ""}
+                <small>${new Date(f.createdAt).toLocaleString()}</small><br>
+                <button onclick="deleteFeedback('${f._id}')">Delete</button>
+              </div>
+            `;
+          });
+        });
+    }
+
+    function deleteFeedback(id) {
+      fetch("http://localhost:5000/api/feedback/" + id, {
+        method: "DELETE"
+      })
+      .then(() => loadFeedback());
+    }
+
+    // INITIAL LOAD
+    loadFeedback();
+  </script>
+
+</body>
+</html>
